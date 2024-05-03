@@ -1,3 +1,5 @@
+use  master
+
 drop database automoveis
 
 create database automoveis 
@@ -55,7 +57,7 @@ create table os(
 	codCliente int ,
 	descricao varchar(60),
 	valorTotal int,
-	dataReparacao int
+	dataReparacao date DEFAULT GETDATE()
 )
 
 go
