@@ -1,13 +1,12 @@
-use  master
-
+/*use  master
 drop database automoveis
-
+*/
 create database automoveis 
 go
 use automoveis
 go
 
-create table cliente (
+create table cliente(
 	id int primary key identity (1,1),
 	nome varchar (60),
 	endereco varchar(60),
@@ -16,9 +15,11 @@ create table cliente (
 
 go
 
-create table venda (
+create table venda(
 	id int primary key identity (1,1),
 	codCliente int,
+	valorTotal int,
+	dataVenda datetime
 )
 
 go
@@ -33,12 +34,13 @@ create table vendaProduto(
 
 go
 
-create table produto(
-	id int primary key identity(1,1),
-	nome nchar(20),
-	valorUnitario int,
-	estoque int
-)
+CREATE TABLE produto (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    nome NCHAR(20),
+    valorUnitario INT,
+    estoque INT DEFAULT 0,
+    produtoStatus BIT DEFAULT 0
+);
 
 go
 
@@ -158,6 +160,8 @@ go
 alter table funcionario add constraint FK_funcionarioCategoria
 foreign key (codCategoria) references categoria(id);
 
+-- Adicionando campos de data atual e valor total à tabela venda
+
 -- Select na tabela cliente
 SELECT * FROM cliente;
 SELECT * FROM venda;
@@ -171,13 +175,22 @@ SELECT * FROM osFuncionario;
 SELECT * FROM funcionario;
 SELECT * FROM categoria;
 
+
+go
+
+SELECT * FROM produto;
+UPDATE produto SET estoque = 3 WHERE id= 2;
+SELECT * FROM produto;
+
 insert into cliente (nome,endereco,telefone) values
 	('clayson','rua 123','991029578'),
 	('lucas1','rua 321', '991029567');
 
-insert into produto (nome, valorUnitario, estoque) values
-	('capa',10, null ),
-	('banco',20,null);
+insert into produto (nome, valorUnitario) values
+	('capa',10),
+	('banco',20);
+
+
 
 insert into servico(nomeServico, valor) values
 	('troca banco', 20),

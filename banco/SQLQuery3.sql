@@ -1,61 +1,117 @@
+-- Procedures somente de venda
+
+drop procedure abrirVenda
 drop procedure vendaDeProduto
 
-CREATE PROCEDURE vendaDeProduto
+--procedure para iniciar venda e codigo para executar procedure
+
+create procedure abrirVenda
+    @codCliente int,
+    @codVenda int output 
+as
+begin
+    -- Inserindo uma nova venda
+    insert into venda (codCliente, dataVenda)
+    values (@codCliente, getdate());
+
+    -- Obtendo o código da venda recém-criada
+    set @codVenda = scope_identity(); 
+
+end;
+
+go
+
+declare @codVenda int;
+exec abrirVenda @codCliente = 1, @codVenda = @codVenda output; 
+
+--                               ( PROCEDURE Venda de Produto )
+
+create procedure vendaDeProduto
     @codProduto int,
-    @quantidade int
-AS
-BEGIN
-    DECLARE @codVenda int;
+    @quantidade int,
+    @codVenda int
+as
+begin
+    -- Verificando se o produto existe
+    if not exists (select 1 from produto where id = @codProduto)
+   begin
+        raiserror('Produto não encontrado.', 16, 1);
+        return;
+    end;
 
-    -- Verificar se há vendas na tabela venda
-    IF NOT EXISTS (SELECT 1 FROM venda)
-    BEGIN
-        -- Se não houver vendas, inserir uma nova venda com o código do cliente definido como 1
-        INSERT INTO venda (codCliente)
-        VALUES (1);
+    -- Verificando se a venda existe
+    if not exists (select 1 from venda where id = @codVenda)
+    begin
+        raiserror('Venda não encontrada.', 15, 1);
+        return;
+    end;
 
-        -- Obter o ID da última venda inserida
-        SET @codVenda = SCOPE_IDENTITY();
-    END
-    ELSE
-    BEGIN
-        -- Se houver vendas, obter o ID da última venda inserida
-        SELECT @codVenda = MAX(id) FROM venda;
-    END
+    -- Verificando se há estoque suficiente para o produto
+    declare @estoqueAtual int;
+    select @estoqueAtual = estoque from produto where id = @codProduto;
 
-    -- Verificar se há estoque suficiente para o produto
-    DECLARE @estoqueAtual int;
-    SELECT @estoqueAtual = estoque FROM produto WHERE id = @codProduto;
+    if @estoqueAtual < @quantidade
+    begin
+        raiserror('Estoque insuficiente para o produto selecionado.', 17, 1);
+        return;
+    end;
 
-    IF @estoqueAtual >= @quantidade
-    BEGIN
-        -- Inserir o produto vendido na tabela vendaProduto
-        DECLARE @valorTotal int;
-        SELECT @valorTotal = @quantidade * valorUnitario
-        FROM produto
-        WHERE id = @codProduto;
+    -- Atualizando ou inserindo o produto vendido na tabela vendaProduto
+    if exists (select 1 from vendaProduto where codVenda = @codVenda and codProduto = @codProduto)
+    begin
+        -- Atualizando a quantidade e o valor total
+        update vendaProduto
+        set quantidade = quantidade + @quantidade,
+            valorTotal = (quantidade + @quantidade) * (select valorUnitario from produto where id = @codProduto)
+        where codVenda = @codVenda and codProduto = @codProduto;
+    end
 
-        INSERT INTO vendaProduto (codVenda, codProduto, quantidade, valorTotal)
-        VALUES (@codVenda, @codProduto, @quantidade, @valorTotal);
+    else
+    begin
+        -- Inserindo o produto vendido na tabela vendaProduto
+        declare @valorTotal int;
+        set @valorTotal = @quantidade * (select valorUnitario from produto where id = @codProduto);
 
-        -- Atualizar o estoque do produto
-        UPDATE produto SET estoque = estoque - @quantidade WHERE id = @codProduto;
-    END
-    ELSE
-    BEGIN
-        -- Se não houver estoque suficiente, lançar uma mensagem de erro
-        RAISERROR('Estoque insuficiente para o produto selecionado.', 16, 1);
-        RETURN; -- Sair do procedimento
-    END
-END;
+        insert into vendaProduto (codVenda, codProduto, quantidade, valorTotal)
+        values (@codVenda, @codProduto, @quantidade, @valorTotal);
+    end;
 
--- Executar a procedure venda com o produto de id 2 e uma quantidade de 3
-EXEC vendaDeProduto @codProduto = 2, @quantidade = 3;
+    -- Atualizando o estoque 
+    declare @quantidadeRestante int;
+    set @quantidadeRestante = @estoqueAtual - @quantidade;
+
+    update produto set estoque = @quantidadeRestante where id = @codProduto;
+
+    -- Verificando o estoque
+    if @quantidadeRestante <= 0
+    begin
+        -- Atualizando o status do produto para 0 (false = inativo)
+        update produto set produtoStatus = 0 where id = @codProduto;
+    end;
+
+    -- Calculando e atualizando o valor total da venda
+    update venda
+	set valorTotal = (
+        select sum(vp.quantidade * p.valorUnitario)
+        from vendaProduto vp
+        inner join produto p ON vp.codProduto = p.id
+		where vp.codVenda = @codVenda
+    )
+    where id = @codVenda;
+
+    return 0;
+end;
+
+-- iniciando venda
+go
+EXEC vendaDeProduto @codProduto = 2, @quantidade = 1, @codVenda = 2;
 
 SELECT * FROM venda;
 SELECT * FROM vendaProduto;
-
+select * from produto
 
 DELETE FROM venda;
 DELETE FROM vendaProduto;
 
+
+-- procedures de Ordem de Serviço

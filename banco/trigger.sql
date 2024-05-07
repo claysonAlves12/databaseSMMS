@@ -1,19 +1,20 @@
-CREATE TRIGGER tr_inserirEstoqueProduto
-ON produto
-AFTER INSERT
-AS
-BEGIN
-    DECLARE @produto_id int;
-    DECLARE @estoque_padrao int;
+drop trigger tr_atualizarEstoqueProduto 
 
-    -- Obtém o ID do produto inserido
-    SELECT @produto_id = id FROM inserted;
+--trigger para atualizar estoque
 
-    -- Define o estoque padrão para novos produtos (por exemplo, 0)
-    SET @estoque_padrao = 0;
+create trigger tr_atualizarEstoqueProduto on produto after insert, update as 
+begin
+  
+    update produto 
+    set produtoStatus = case 
+                            when estoque > 0 then 1 
+                            else 0 
+                        end
+    WHERE id IN (select id from inserted);
 
-    -- Insere o estoque padrão para o produto recém-inserido
-    UPDATE produto
-    SET estoque = @estoque_padrao
-    WHERE id = @produto_id;
-END;
+    
+    update produto 
+    set produtoStatus = 0 
+    where id in (select id from inserted) and estoque = 0;
+end;
+
