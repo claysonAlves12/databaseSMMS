@@ -59,8 +59,10 @@ create table os(
 	codCliente int ,
 	descricao varchar(60),
 	valorTotal int,
-	dataReparacao date DEFAULT GETDATE()
+	dataReparacao datetime)
 )
+
+
 
 go
 
@@ -179,7 +181,7 @@ SELECT * FROM categoria;
 go
 
 SELECT * FROM produto;
-UPDATE produto SET estoque = 3 WHERE id= 2;
+UPDATE produto SET estoque = 2 WHERE id= 2;
 SELECT * FROM produto;
 
 insert into cliente (nome,endereco,telefone) values
