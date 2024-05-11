@@ -18,6 +18,8 @@ go
 create table venda(
 	id int primary key identity (1,1),
 	codCliente int,
+	valorTotal int,
+	dataVenda datetime
 )
 
 go
@@ -57,8 +59,10 @@ create table os(
 	codCliente int ,
 	descricao varchar(60),
 	valorTotal int,
-	dataReparacao date DEFAULT GETDATE()
+	dataInicial datetime
 )
+
+
 
 go
 
@@ -175,10 +179,10 @@ SELECT * FROM categoria;
 
 
 go
-+
-go
+
 SELECT * FROM produto;
-UPDATE produto SET estoque = 5 WHERE id= 2;
+--acrescentando estoque no produto
+UPDATE produto SET estoque = 1 WHERE id= 2;
 SELECT * FROM produto;
 
 insert into cliente (nome,endereco,telefone) values
